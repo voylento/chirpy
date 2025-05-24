@@ -1,0 +1,7 @@
+#!/bin/bash
+
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"body":"This is a test of a valid chirp"}' \
+  http://localhost:8080/api/validate_chirp
+
