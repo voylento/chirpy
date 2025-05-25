@@ -2,6 +2,6 @@
 
 curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"body":"This is a test of a chirp that is more than 140 characters in length and therefore is not a valid chirp and should return a 400 error code and a json response saying the chirp is too long"}' \
-  http://localhost:8080/api/validate_chirp
+  -d '{"body":"This is a test of a chirp that is more than 140 characters in length and therefore is not a valid chirp and should return a 400 error code and a json response saying the chirp is too long", "user_id": ""}' \
+  http://localhost:8080/api/validate_chirp | jq '.'
 

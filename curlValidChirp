@@ -2,6 +2,6 @@
 
 curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"body":"This is a test of a valid chirp"}' \
-  http://localhost:8080/api/validate_chirp
+  -d '{"body":"This is a test of a valid chirp", "user_id": "360738d0-c643-4427-822a-379a2e39a3ab"}' \
+  http://localhost:8080/api/chirps | jq '.'
 

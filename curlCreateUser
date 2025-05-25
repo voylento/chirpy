@@ -1,0 +1,8 @@
+#!/bin/bash
+
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"email":"testity2@testity.org"}' \
+  -v \
+  http://localhost:8080/api/users | jq '.'
+
