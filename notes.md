@@ -100,9 +100,44 @@ Sqlc relies on the format of the metadata line preceding the SQL query. CreateUs
 ```
 sqlc generate
 ```
-3. Notice that generated code (in internal/database subdir) relies on Google's [`uuid`](https://pkg.go.dev/github.com/google/uuidpackage). Add that to your module: 
+3. Notice that generated code (in internal/database subdir) relies on Google's [`uuid`](https://pkg.go.dev/github.com/google/uuidpackage). Add that to your module and then to the code sqlc generated: 
 ```
 go get github.com/google/uuid
+```
+add "github.com/google/uuid" and "time" to internal/database/queries.sql.go:
+```
+package database
+
+import (
+	"context"
+	"database/sql"
+	"time"
+	"github.com/google/uuid"
+)
+
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (id, created_at, updated_at, email)
+VALUES (
+  gen_random_uuid(),
+  NOW(),
+  NOW(),
+  $1
+)
+RETURNING id, created_at, updated_at, email
+`
+
+func (q *Queries) CreateUser(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+	)
+	return i, err
+}
+
 ```
 4. Need to add a Postgres driver so the program can communicate with the database
 ```

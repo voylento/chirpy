@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"github.com/google/uuid"
+	"github.com/voylento/chirpy/internal/database"
+	"github.com/voylento/chirpy/internal/auth"
 	"net/http"
 	"time"
 )
@@ -14,13 +16,10 @@ type User struct {
 	Email				string			`json:"email"`
 }
 
-
 func HandleCreateUser(w http.ResponseWriter, req *http.Request) {
 	type parameters struct {
-		Email string `json:"email"`
-	}
-	type response struct {
-		User
+		Email 		string `json:"email"`
+		Password	string `json:"password"`
 	}
 
 	decoder := json.NewDecoder(req.Body)
@@ -31,44 +30,49 @@ func HandleCreateUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user, err := config.db.CreateUser(req.Context(), params.Email)
+	pwd_hash, err := auth.HashPassword(params.Password)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Password does not meet minimum requirements", err)
+		return
+	}
+
+	userParams := database.CreateUserParams{
+		Email:						params.Email,
+		HashedPassword: 	pwd_hash,
+	}
+
+	user, err := config.db.CreateUser(req.Context(), userParams)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Create User Failed", err)
 		return
 	}
 
-	RespondWithJSON(w, http.StatusCreated, response{
-		User: User{
+	RespondWithJSON(w, http.StatusCreated, User{ 
 			ID: 				user.ID,
 			CreatedAt:	user.CreatedAt,
 			UpdatedAt: 	user.UpdatedAt,
 			Email:			user.Email,
 		},
-	})
+	)
 }
 
 func HandleGetUsers(w http.ResponseWriter, r *http.Request) {
-	type userResponse struct {
-		ID				string		`json:"id"`
-		CreatedAt	time.Time	`json:"created_at"`
-		UpdatedAt time.Time	`json:"updated_at"`
-		Email			string		`json:"email"`
-	}
-
 	users, err := config.db.GetAllUsers(r.Context())
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Count not retrieve users", err)
 		return
 	}
 
-	userResponses := make([]userResponse, len(users))
+	userResponses := make([]User, len(users))
 	for i, user := range users {
-		userResponses[i] = userResponse{
-			ID:        user.ID.String(),
+		userResponses[i] = User{
+			ID:        user.ID,
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
 		}
 	}
-	RespondWithJSON(w, http.StatusOK, users)
+	RespondWithJSON(w, http.StatusOK, userResponses)
 }
+
+

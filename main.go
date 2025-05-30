@@ -15,6 +15,7 @@ type Config struct {
 	hits			atomic.Int32
 	db 				*database.Queries
 	platform	string
+	secret		string
 }
 
 var config *Config
@@ -22,13 +23,13 @@ var config *Config
 func InitializeApp() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file: %w", err)
+		log.Fatalf("Error loading .env file: %v", err)
 	}
 
 	dbUrl := os.Getenv("DB_URL")
 	db, err := sql.Open("postgres", dbUrl)
 	if err != nil {
-		log.Fatalf("Unable to open database: %w", err)
+		log.Fatalf("Unable to open database: %v", err)
 	}
 
 	dbQueries := database.New(db)
@@ -37,6 +38,7 @@ func InitializeApp() {
 		hits:	atomic.Int32{},
 		db:		dbQueries,
 		platform:	os.Getenv("PLATFORM"),
+		secret:		os.Getenv("SECRET"),
 	}
 }
 
@@ -59,6 +61,7 @@ func main() {
 	mux.Handle(appPath, config.MiddlewareMetricsInc(fileServerHandler))
 	mux.HandleFunc(createPath(http.MethodGet, apiPath, "users"), HandleGetUsers)
 	mux.HandleFunc(createPath(http.MethodPost, apiPath, "users"), HandleCreateUser)
+	mux.HandleFunc(createPath(http.MethodPost, apiPath, "login"), HandleLogin)
 	mux.HandleFunc(createPath(http.MethodGet, apiPath, "chirps/{chirpID}"), HandleGetChirp)
 	mux.HandleFunc(createPath(http.MethodGet, apiPath, "chirps"), HandleGetChirps)
 	mux.HandleFunc(createPath(http.MethodPost, apiPath, "chirps"), HandleCreateChirp)

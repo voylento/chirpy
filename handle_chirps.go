@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
+	"github.com/voylento/chirpy/internal/auth"
 	"github.com/voylento/chirpy/internal/database"
 	"net/http"
 	"strings"
@@ -25,8 +27,8 @@ type Chirp struct {
 
 func HandleCreateChirp(w http.ResponseWriter, req *http.Request) {
 	type parameters struct {
-		Body string 			`json:"body"`
-		UserID uuid.UUID	`json:"user_id"`
+		Body 			string 			`json:"body"`
+		UserID 		uuid.UUID		`json:"user_id"`
 	}
 	type response struct {
 		ID					uuid.UUID			`json:"id"`
@@ -43,6 +45,20 @@ func HandleCreateChirp(w http.ResponseWriter, req *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "Unable to decode chirp contents", err)
 		return
 	}
+	
+	token, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		fmt.Printf("auth.GetBearerToken failed: %v\n", err)
+		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		return
+	}
+
+	userId, err := auth.ValidateJWT(token, config.secret)
+	if err != nil {
+		fmt.Printf("auth.ValidateJWT failed: %v\n", err)
+		RespondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		return
+	}
 
 	const max_chirp_length = 140
 	if len(params.Body) > max_chirp_length {
@@ -54,7 +70,7 @@ func HandleCreateChirp(w http.ResponseWriter, req *http.Request) {
 
 	chirpParams := database.CreateChirpParams {
 		Body:		filteredBody,
-		UserID:	params.UserID,
+		UserID:	userId,
 	}
 
 	chirp, err := config.db.CreateChirp(req.Context(), chirpParams)
